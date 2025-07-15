@@ -133,24 +133,70 @@ class ClipboardPaster:
 class StatusIndicator:
     def __init__(self, dictation_app):
         self.dictation_app = dictation_app
+        self.status_item = None
+        self._setup_status_bar()
+    
+    def _setup_status_bar(self):
+        try:
+            import Cocoa
+            from Foundation import NSObject
+            
+            # Initialize NSApplication if not already done
+            app = Cocoa.NSApplication.sharedApplication()
+            app.setActivationPolicy_(Cocoa.NSApplicationActivationPolicyAccessory)
+            
+            # Create status bar item
+            status_bar = Cocoa.NSStatusBar.systemStatusBar()
+            self.status_item = status_bar.statusItemWithLength_(Cocoa.NSVariableStatusItemLength)
+            
+            # Set initial title
+            self.status_item.setTitle_("🎤")
+            self.status_item.setHighlightMode_(True)
+            
+            logger.info("Status bar initialized")
+        except ImportError:
+            logger.warning("PyObjC not available, status bar disabled")
+            self.status_item = None
+        except Exception as e:
+            logger.error(f"Failed to setup status bar: {e}")
+            self.status_item = None
     
     def set_status(self, status: str):
+        status_icons = {
+            "ready": "🎤",
+            "recording": "🔴",
+            "transcribing": "⚡",
+            "error": "❌"
+        }
+        
         status_messages = {
             "ready": "Ready for dictation",
             "recording": "Recording...",
             "transcribing": "Transcribing audio...",
-            "error": "Error occurred",
-            "cancelled": "Recording cancelled"
+            "error": "Error occurred"
         }
-        logger.info(f"Status: {status_messages.get(status, status)}")
+        
+        icon = status_icons.get(status, "🎤")
+        message = status_messages.get(status, status)
+        
+        if self.status_item:
+            self.status_item.setTitle_(icon)
+            self.status_item.setToolTip_(message)
+        
+        logger.info(f"Status: {message}")
     
     def run(self):
-        # Simple event loop - keep the app running
         try:
-            while True:
-                time.sleep(1)
-        except KeyboardInterrupt:
-            pass
+            import Cocoa
+            # Run the app event loop
+            Cocoa.NSApp.run()
+        except ImportError:
+            # Fallback if PyObjC not available
+            try:
+                while True:
+                    time.sleep(1)
+            except KeyboardInterrupt:
+                pass
 
 class DictationApp:
     def __init__(self):
