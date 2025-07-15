@@ -1,15 +1,16 @@
 # Simple Dictation App for macOS
 
-A minimal dictation app that uses OpenAI's Whisper API for speech-to-text conversion with global hotkey support and auto-pasting.
+A minimal dictation app that uses OpenAI's transcription API for speech-to-text conversion with global hotkey support and auto-pasting.
 
 ## Features
 
 - **Global Hotkey**: Press Right Command key to start/stop recording
-- **OpenAI Integration**: Uses Whisper API for accurate transcription
-- **Auto-pasting**: Automatically pastes transcribed text
-- **Status Indicator**: System tray icon shows current status
+- **Cancel Recording**: Press Escape key to cancel current recording
+- **OpenAI Integration**: Uses gpt-4o-mini-transcribe model for accurate transcription
+- **Auto-pasting**: Automatically pastes transcribed text to active application
+- **Status Indicator**: System tray icon shows current status (🎤/🔴/⚡/❌)
 - **Auto-startup**: Optional startup on login
-- **macOS Optimized**: Designed specifically for macOS
+- **macOS Optimized**: Designed specifically for macOS with native integrations
 
 ## Quick Start
 
@@ -34,16 +35,17 @@ A minimal dictation app that uses OpenAI's Whisper API for speech-to-text conver
 
 ## Usage
 
-1. **Start Recording**: Press and hold Right Command key
-2. **Stop Recording**: Release Right Command key
-3. **Auto-paste**: Transcribed text is automatically pasted
+1. **Start Recording**: Press Right Command key to start recording
+2. **Stop Recording**: Press Right Command key again to stop and transcribe
+3. **Cancel Recording**: Press Escape key to cancel without transcribing
+4. **Auto-paste**: Transcribed text is automatically pasted to the active application
 
 ## Status Icons
 
-- 🎤 Ready
-- 🔴 Recording  
-- ⏳ Transcribing
-- ❌ Error
+- 🎤 Ready for dictation
+- 🔴 Recording audio
+- ⚡ Transcribing audio
+- ❌ Error occurred
 
 ## Configuration
 
@@ -52,10 +54,11 @@ Configuration is stored in `~/.dictation_config.json`:
 ```json
 {
   "openai_api_key": "your-key",
-  "model": "whisper-1",
+  "model": "gpt-4o-mini-transcribe",
   "language": "en",
   "hotkey": "cmd_r",
   "auto_paste": true,
+  "audio_device": null,
   "sample_rate": 16000
 }
 ```
