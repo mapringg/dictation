@@ -12,7 +12,7 @@ class Config:
         """Load configuration from file or use defaults"""
         defaults = {
             "openai_api_key": os.getenv("OPENAI_API_KEY", ""),
-            "model": "whisper-1",
+            "model": "gpt-4o-mini-transcribe",
             "language": "en",
             "hotkey": "cmd_r",  # Right Command for macOS
             "auto_paste": True,
