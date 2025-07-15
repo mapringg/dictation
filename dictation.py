@@ -139,7 +139,8 @@ class StatusIndicator:
             "ready": "Ready for dictation",
             "recording": "Recording...",
             "transcribing": "Transcribing audio...",
-            "error": "Error occurred"
+            "error": "Error occurred",
+            "cancelled": "Recording cancelled"
         }
         logger.info(f"Status: {status_messages.get(status, status)}")
     
@@ -177,6 +178,9 @@ class DictationApp:
                     self.start_recording()
                 else:
                     self.stop_recording()
+            # Escape key to cancel recording
+            elif key == keyboard.Key.esc and self.is_recording:
+                self.cancel_recording()
         except AttributeError:
             pass
     
@@ -202,6 +206,17 @@ class DictationApp:
             threading.Thread(target=self._process_transcription, args=(audio_data,)).start()
         else:
             self.status_indicator.set_status("ready")
+    
+    def cancel_recording(self):
+        if not self.is_recording:
+            return
+            
+        self.is_recording = False
+        self.status_indicator.set_status("ready")
+        
+        # Stop recording without processing audio
+        self.recorder.stop_recording()
+        logger.info("Recording cancelled")
     
     def _process_transcription(self, audio_data):
         try:
