@@ -213,6 +213,10 @@ class DictationApp:
         self.is_recording = False
         self.shutdown_event = Event()
         
+        # Double-press detection for stop recording
+        self.last_cmd_r_time = 0
+        self.double_press_threshold = 0.5  # 500ms window for double press
+        
         # Set up keyboard listener
         self.listener = keyboard.Listener(on_press=self.on_key_press)
     
@@ -220,10 +224,25 @@ class DictationApp:
         try:
             # Right Command key for macOS
             if key == keyboard.Key.cmd_r:
+                current_time = time.time()
+                time_since_last_press = current_time - self.last_cmd_r_time
+                
                 if not self.is_recording:
-                    self.start_recording()
+                    # Check for double press to start recording
+                    if time_since_last_press <= self.double_press_threshold and self.last_cmd_r_time > 0:
+                        # Double press detected - start recording
+                        self.start_recording()
+                    else:
+                        # Single press - just update timestamp for potential double press
+                        self.last_cmd_r_time = current_time
                 else:
-                    self.stop_recording()
+                    # Check for double press to stop recording
+                    if time_since_last_press <= self.double_press_threshold:
+                        # Double press detected - stop recording
+                        self.stop_recording()
+                    else:
+                        # Single press while recording - update timestamp for potential double press
+                        self.last_cmd_r_time = current_time
             # Escape key to cancel recording
             elif key == keyboard.Key.esc and self.is_recording:
                 self.cancel_recording()
