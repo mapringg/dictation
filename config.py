@@ -11,8 +11,8 @@ class Config:
     def load_config(self):
         """Load configuration from file or use defaults"""
         defaults = {
-            "openai_api_key": os.getenv("OPENAI_API_KEY", ""),
-            "model": "gpt-4o-mini-transcribe",
+            "groq_api_key": os.getenv("GROQ_API_KEY", ""),
+            "model": "whisper-large-v3-turbo",
             "language": "en",
             "hotkey": "cmd_r",  # Right Command for macOS
             "auto_paste": True,
@@ -35,7 +35,7 @@ class Config:
     def save_config(self):
         """Save current configuration to file"""
         config = {
-            "openai_api_key": self.openai_api_key,
+            "groq_api_key": self.groq_api_key,
             "model": self.model,
             "language": self.language,
             "hotkey": self.hotkey,
@@ -51,10 +51,10 @@ class Config:
             print(f"Error saving config: {e}")
     
     def set_api_key(self, api_key: str):
-        """Set OpenAI API key"""
-        self.openai_api_key = api_key
+        """Set Groq API key"""
+        self.groq_api_key = api_key
         self.save_config()
     
     def is_configured(self) -> bool:
         """Check if minimum configuration is present"""
-        return bool(self.openai_api_key)
+        return bool(self.groq_api_key)

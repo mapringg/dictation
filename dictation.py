@@ -70,40 +70,62 @@ class AudioRecorder:
         
         return None
 
-class OpenAITranscriber:
+class GroqTranscriber:
     def __init__(self, config: Config):
         self.config = config
-        self.client = openai.OpenAI(api_key=config.openai_api_key)
+        self.client = openai.OpenAI(
+            api_key=config.groq_api_key,
+            base_url="https://api.groq.com/openai/v1"
+        )
     
     async def transcribe(self, audio_data: np.ndarray) -> str:
         try:
-            # Convert to int16 for saving as wav
+            # Convert to int16 for saving as FLAC (as recommended by Groq)
             audio_int16 = (audio_data * 32767).astype(np.int16)
             
-            # Save to temporary file
+            # Save to temporary file as FLAC for better compression
             import tempfile
-            import wave
+            import subprocess
             
-            with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as temp_file:
-                with wave.open(temp_file.name, 'wb') as wav_file:
-                    wav_file.setnchannels(1)
-                    wav_file.setsampwidth(2)
-                    wav_file.setframerate(16000)
-                    wav_file.writeframes(audio_int16.tobytes())
-                
-                # Transcribe with OpenAI
-                with open(temp_file.name, 'rb') as audio_file:
-                    response = await asyncio.to_thread(
-                        self.client.audio.transcriptions.create,
-                        model=self.config.model,
-                        file=audio_file,
-                        language=self.config.language
-                    )
-                
-                # Clean up temp file
-                os.unlink(temp_file.name)
-                
-                return response.text.strip()
+            # First save as WAV, then convert to FLAC using ffmpeg
+            with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as wav_temp:
+                with tempfile.NamedTemporaryFile(suffix='.flac', delete=False) as flac_temp:
+                    # Save as WAV first
+                    import wave
+                    with wave.open(wav_temp.name, 'wb') as wav_file:
+                        wav_file.setnchannels(1)
+                        wav_file.setsampwidth(2)
+                        wav_file.setframerate(16000)
+                        wav_file.writeframes(audio_int16.tobytes())
+                    
+                    # Convert to FLAC using ffmpeg (if available), otherwise use WAV
+                    try:
+                        subprocess.run([
+                            'ffmpeg', '-i', wav_temp.name, '-c:a', 'flac', 
+                            '-ar', '16000', '-ac', '1', '-y', flac_temp.name
+                        ], check=True, capture_output=True)
+                        audio_file_path = flac_temp.name
+                    except (subprocess.CalledProcessError, FileNotFoundError):
+                        # Fallback to WAV if ffmpeg not available
+                        logger.warning("ffmpeg not available, using WAV format")
+                        audio_file_path = wav_temp.name
+                    
+                    # Transcribe with Groq
+                    with open(audio_file_path, 'rb') as audio_file:
+                        response = await asyncio.to_thread(
+                            self.client.audio.transcriptions.create,
+                            model=self.config.model,
+                            file=audio_file,
+                            language=self.config.language,
+                            temperature=0  # Set to 0 for consistent results as recommended
+                        )
+                    
+                    # Clean up temp files
+                    os.unlink(wav_temp.name)
+                    if audio_file_path == flac_temp.name:
+                        os.unlink(flac_temp.name)
+                    
+                    return response.text.strip()
                 
         except Exception as e:
             logger.error(f"Transcription failed: {e}")
@@ -203,10 +225,10 @@ class DictationApp:
         self.config = Config()
         
         if not self.config.is_configured():
-            raise ValueError("OpenAI API key not configured. Set OPENAI_API_KEY environment variable or run setup.")
+            raise ValueError("Groq API key not configured. Set GROQ_API_KEY environment variable or run setup.")
         
         self.recorder = AudioRecorder()
-        self.transcriber = OpenAITranscriber(self.config)
+        self.transcriber = GroqTranscriber(self.config)
         self.paster = ClipboardPaster()
         self.status_indicator = StatusIndicator(self)
         
